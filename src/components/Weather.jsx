@@ -1,29 +1,20 @@
-import { useEffect, useState } from 'react';
 import { Box, Typography, CircularProgress } from '@mui/material';
-import fetchWeather from '../api/weatherApi';
+import { formatSavedAt } from '../api/weatherCache';
+import useWeather from '../hooks/useWeather';
+import useNow from '../hooks/useNow';
 import PropTypes from 'prop-types';
 
-const Weather = ({ location = 'Santiago de Chile' }) => {
-  const [weather, setWeather] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+// Cada cuánto se recalcula el texto "hace N minutos" cuando hay una lectura
+// guardada en pantalla.
+const TICK = 30000;
 
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const data = await fetchWeather(location);
-        if (isMounted) setWeather(data);
-      } catch {
-        if (isMounted) setError('No se pudo cargar el clima.');
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    })();
-    return () => { isMounted = false; };
-  }, [location]);
+const Weather = ({ location = 'Santiago de Chile' }) => {
+  const { weather, savedAt, loading, error } = useWeather(location);
+
+  // El hook se llama siempre —las reglas de los hooks no admiten llamarlo
+  // dentro de un if—, pero con intervalo 0 no arma ningún temporizador. Sin
+  // fecha que mostrar no hay nada que refrescar.
+  const now = useNow(savedAt === null ? 0 : TICK);
 
   if (loading) {
     return (
@@ -45,7 +36,6 @@ const Weather = ({ location = 'Santiago de Chile' }) => {
   if (!weather) return null;
 
   const {
-    label,                // "Santiago, Región Metropolitana, Chile" (según tu API)
     temp,                 // actual
     tempMinForecast,      // mínima pronosticada hoy
     tempMaxForecast,      // máxima pronosticada hoy
@@ -61,16 +51,17 @@ const Weather = ({ location = 'Santiago de Chile' }) => {
 
   return (
     <Box>
-      {/* Título de la tarjeta (puedes ocultarlo si prefieres usar sólo el header de la card) */}
-      {label && (
-        <Typography variant="h6" component="h2" gutterBottom>
-          {label}
-        </Typography>
-      )}
-
       <Typography variant="body1"><strong>Actual:</strong> {fmt(temp)}</Typography>
       <Typography variant="body1"><strong>Máxima:</strong> {fmt(maxToday)}</Typography>
       <Typography variant="body1"><strong>Mínima:</strong> {fmt(minToday)}</Typography>
+
+      {/* Solo cuando el dato viene del caché: el aviso de que no hay conexión
+          lo da ConnectionStatus, y lo que falta acá es de cuándo es el dato. */}
+      {savedAt !== null && (
+        <Typography variant="caption" component="p" color="text.secondary" sx={{ mt: 1.5 }}>
+          Última actualización: {formatSavedAt(savedAt, now)}.
+        </Typography>
+      )}
     </Box>
   );
 };

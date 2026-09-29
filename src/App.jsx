@@ -10,6 +10,13 @@ import Home from './components/Home';
 import Search from './components/Search';
 import UserProfile from './components/UserProfile';
 import Horoscope from './components/Horoscope';
+import ConnectionStatus from './components/ConnectionStatus';
+
+const TITLES = {
+  '/search': 'Buscar ciudad',
+  '/profile': 'Perfil',
+  '/horoscope': 'Horóscopo',
+};
 
 function App() {
   // Favorites persisted
@@ -29,10 +36,7 @@ function App() {
   };
 
   const location = useLocation();
-  const title = useMemo(() => {
-    if (location.pathname === '/search') return 'Buscar ciudad';
-    return 'Clima';
-  }, [location.pathname]);
+  const title = useMemo(() => TITLES[location.pathname] ?? 'Clima', [location.pathname]);
 
   return (
     <>
@@ -52,11 +56,12 @@ function App() {
           </Button>
           <Button color="inherit" component={Link} to="/horoscope" startIcon={<AutoAwesomeIcon />}>
             Horóscopo
-          </Button>          
+          </Button>
         </Toolbar>
       </AppBar>
       <Toolbar />
-      <Container component="main" maxWidth="md" sx={{ px: 2, py: 2 }}>
+      <ConnectionStatus />
+      <Container component="main" maxWidth="md">
         <Routes>
           <Route path="/" element={<Home favorites={favorites} removeFavorite={removeFavorite} />} />
           <Route path="/search" element={<Search isFavorite={isFavorite} onAddFavorite={onAddFavorite} />} />

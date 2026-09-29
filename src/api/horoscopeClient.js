@@ -1,5 +1,5 @@
 export async function fetchHoroscope(sign) {
-  const res = await fetch(`/api/horoscope?sign=${encodeURIComponent(sign)}&day=today`);
+  const res = await fetch(`/api/horoscope?sign=${encodeURIComponent(sign)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
   const text =
