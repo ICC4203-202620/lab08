@@ -153,11 +153,16 @@ const SIGNS = new Set([
   'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
 ]);
 
+// Lista blanca de períodos, con la misma lógica que la de signos.
+const PERIODS = new Set(['daily', 'weekly', 'monthly']);
+
 app.get('/api/horoscope', async (req, res) => {
   const sign = String(req.query.sign || '').toLowerCase();
+  const period = String(req.query.period || 'daily').toLowerCase();
   if (!SIGNS.has(sign)) return res.status(400).json({ error: 'invalid sign' });
+  if (!PERIODS.has(period)) return res.status(400).json({ error: 'invalid period' });
 
-  const u = new URL('https://freehoroscopeapi.com/api/v1/get-horoscope/daily');
+  const u = new URL(`https://freehoroscopeapi.com/api/v1/get-horoscope/${period}`);
   u.searchParams.set('sign', sign);
 
   try {

@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import useLocalStorageState from 'use-local-storage-state';
-import { AppBar, Toolbar, Typography, Button, Container } from '@mui/material';
+import {
+  AppBar, Toolbar, Typography, Button, Container,
+  BottomNavigation, BottomNavigationAction, Paper, useMediaQuery,
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import HomeIcon from '@mui/icons-material/Home';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonIcon from '@mui/icons-material/Person';
@@ -17,6 +21,15 @@ const TITLES = {
   '/profile': 'Perfil',
   '/horoscope': 'Horóscopo',
 };
+
+// Las cuatro secciones de la aplicación. La barra superior y la inferior se
+// construyen desde esta misma lista, para que no puedan quedar distintas.
+const SECTIONS = [
+  { to: '/', label: 'Inicio', icon: <HomeIcon /> },
+  { to: '/search', label: 'Buscar', icon: <SearchIcon /> },
+  { to: '/profile', label: 'Perfil', icon: <PersonIcon /> },
+  { to: '/horoscope', label: 'Horóscopo', icon: <AutoAwesomeIcon /> },
+];
 
 function App() {
   // Favorites persisted
@@ -38,6 +51,12 @@ function App() {
   const location = useLocation();
   const title = useMemo(() => TITLES[location.pathname] ?? 'Clima', [location.pathname]);
 
+  // En un teléfono los cuatro botones no caben en la barra superior. Por
+  // debajo del breakpoint `sm` (600 px) la navegación baja a una
+  // BottomNavigation, que además queda al alcance del pulgar.
+  const theme = useTheme();
+  const compact = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
     <>
       <AppBar position="fixed">
@@ -45,23 +64,17 @@ function App() {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             {title}
           </Typography>
-          <Button color="inherit" component={Link} to="/" startIcon={<HomeIcon />}>
-            Inicio
-          </Button>
-          <Button color="inherit" component={Link} to="/search" startIcon={<SearchIcon />}>
-            Buscar
-          </Button>
-          <Button color="inherit" component={Link} to="/profile" startIcon={<PersonIcon />}>
-            Perfil
-          </Button>
-          <Button color="inherit" component={Link} to="/horoscope" startIcon={<AutoAwesomeIcon />}>
-            Horóscopo
-          </Button>
+          {!compact && SECTIONS.map(({ to, label, icon }) => (
+            <Button key={to} color="inherit" component={Link} to={to} startIcon={icon}>
+              {label}
+            </Button>
+          ))}
         </Toolbar>
       </AppBar>
       <Toolbar />
       <ConnectionStatus />
-      <Container component="main" maxWidth="md">
+      {/* Con la barra inferior, el padding final evita que tape lo último de cada pantalla */}
+      <Container component="main" maxWidth="md" sx={{ pb: compact ? 9 : 0 }}>
         <Routes>
           <Route path="/" element={<Home favorites={favorites} removeFavorite={removeFavorite} />} />
           <Route path="/search" element={<Search isFavorite={isFavorite} onAddFavorite={onAddFavorite} />} />
@@ -69,6 +82,26 @@ function App() {
           <Route path="/horoscope" element={<Horoscope profileTo="/profile" />} />
         </Routes>
       </Container>
+
+      {compact && (
+        <Paper
+          elevation={3}
+          sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (t) => t.zIndex.appBar }}
+        >
+          <BottomNavigation showLabels value={location.pathname}>
+            {SECTIONS.map(({ to, label, icon }) => (
+              <BottomNavigationAction
+                key={to}
+                component={Link}
+                to={to}
+                value={to}
+                label={label}
+                icon={icon}
+              />
+            ))}
+          </BottomNavigation>
+        </Paper>
+      )}
     </>
   );
 }

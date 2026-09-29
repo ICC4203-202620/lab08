@@ -309,3 +309,116 @@ El objeto `"scripts"` de `package.json` declara las tareas disponibles:
 * `preview`: sirve la aplicación construida, junto con el backend, para probarla como se vería en producción.
 
 En `vite.config.js` hay dos agregados respecto de la configuración por defecto: el proxy hacia el backend, descrito más arriba, y `build.manifest`, que deja en `dist/assets-manifest.json` la lista de archivos que el service worker precachea al instalarse.
+
+---
+
+# Solución
+
+Esta rama (`solution`) contiene el código de `main` con los ejercicios resueltos. Úsala como referencia después de intentarlos: el valor del laboratorio está en equivocarse primero.
+
+Los ejercicios 1 a 7 están implementados. El 8 es de observación y se comenta al final.
+
+## 1. Fecha de nacimiento
+
+En `src/components/UserProfile.jsx`. El campo de edad desapareció del formulario, y en su lugar hay un `DatePicker` dentro de un único `LocalizationProvider` que envuelve todo el formulario.
+
+**El formato guardado.** La fecha se guarda como texto `YYYY-MM-DD`, construido con `toLocalISODate` a partir del año, el mes y el día locales. Lo delicado es el camino de vuelta: `new Date('1990-08-15')` interpreta el texto como medianoche UTC, que en Chile todavía es el 14 de agosto a las 20:00 o 21:00, y el usuario vería su fecha de nacimiento corrida en un día. Por eso `parseISODate` arma la fecha con `new Date(año, mes, día)`, en hora local. El mismo cuidado vale al escribir: `toISOString()` convierte a UTC, y un `Date` con hora posterior a las 20:00 terminaría guardado como el día siguiente.
+
+**El `onChange`.** `DatePicker` entrega un `Date` y no un evento, de modo que no sirve `formik.handleChange`. El manejador `handleBirthDateChange` distingue tres casos: `null` si el campo quedó vacío, una fecha inválida mientras el usuario escribe a medias (se guarda el texto `'invalid'`, que el esquema rechaza), y una fecha completa.
+
+**El `onBlur`.** En las versiones recientes, `DatePicker` usa una estructura accesible en la que el día, el mes y el año son elementos separados, y el `<input>` con el atributo `name` ya no es el que recibe el foco. `formik.handleBlur` depende de ese atributo para saber qué campo marcar como visitado, así que el componente llama directamente a `formik.setFieldTouched('birthDate', true)`, tanto al salir del campo como al cerrar el calendario.
+
+**La validación.** Tres reglas con `.test()`: formato válido, fecha no futura y edad mínima. La fecha máxima que ofrece el calendario (`maxDate`) sale de `latestAllowedBirthDate()`, una función, porque una constante calculada al cargar el módulo quedaría desfasada si la aplicación sigue abierta después de medianoche. `maxDate` impide elegir una fecha no permitida en el calendario, pero no impide escribirla con el teclado, y por eso la regla también está en el esquema.
+
+**La edad.** No es un campo del formulario: se deriva de la fecha con `useMemo` y se muestra como texto de ayuda del propio `DatePicker`. Al guardar, `onSubmit` la calcula y la agrega al perfil. Guardar un dato derivado es redundante, pero el enunciado lo pide para que otros componentes puedan leer la edad sin recalcularla; lo importante es que el usuario no pueda editarla por separado y dejarla en contradicción con la fecha.
+
+**Perfiles antiguos.** Un perfil guardado antes del ejercicio tiene `age` y no tiene `birthDate`, `newsletter` ni `email`. `initialFormValues` recorre los campos del formulario y toma de lo guardado solo esos, con el valor por defecto para los que falten. Lo que sale de `localStorage` pudo escribirlo una versión anterior de la aplicación, igual que en el laboratorio 7.
+
+## 2. Horóscopo
+
+En `src/components/Horoscope.jsx`. El signo se deriva en cada render con `useMemo` a partir de `birthDate`, y el efecto que carga el horóscopo depende de él. La acción `INIT` de la versión 2025, que copiaba el signo al estado del reducer, se eliminó: tener el mismo dato en dos lugares obliga a mantenerlos sincronizados, y un efecto que solo copia un valor es la señal de que ese valor no necesitaba ser estado.
+
+El efecto usa la bandera `current` del laboratorio 7, revisada después de cada `await`. Aquí importa más que en `Weather`, porque hay dos peticiones encadenadas y el usuario puede cambiar de período entre una y otra.
+
+## 3. Validación condicional
+
+El esquema agrega dos campos:
+
+```es6
+newsletter: Yup.boolean(),
+email: Yup.string()
+  .trim()
+  .email('Correo inválido')
+  .when('newsletter', {
+    is: true,
+    then: (s) => s.required('Obligatorio si quieres recibir el horóscopo'),
+    otherwise: (s) => s.notRequired(),
+  }),
+```
+
+`.when()` recibe el nombre del campo del que depende, y dos funciones que reciben el esquema base y le agregan reglas. La forma con funciones (`then: (s) => …`) es la de Yup 1; la forma antigua, `then: Yup.string().required()`, ya no se acepta.
+
+El JSX solo decide la presentación: el campo de correo se deshabilita mientras la casilla esté desmarcada. Al desmarcarla, `handleNewsletterChange` quita el correo de `touched` para que no quede un error en rojo sobre un campo que ya no aplica.
+
+## 4. Verificar una dirección
+
+El botón *Verificar dirección* llama a `forwardGeocodeServer` con lo escrito y, si Google encuentra la dirección, la reemplaza por la versión normalizada y guarda sus coordenadas. Se deshabilita mientras el campo tenga errores de validación, mientras haya otra consulta en curso y sin conexión.
+
+Para la pregunta del enunciado, `handleAddressChange` descarta las coordenadas en cuanto el usuario edita la dirección a mano. La alternativa, dejarlas, produce un perfil que dice "Av. Plaza 2501" con las coordenadas de otro lugar, y ninguna pantalla lo delataría.
+
+Nota que el endpoint ya devolvía `formatted: null` ante `ZERO_RESULTS`. Esa decisión del backend es la que permite al frontend distinguir "no existe" de "falló", con el mismo criterio que `NetworkError` en el laboratorio 7.
+
+## 5. Horóscopo semanal y mensual
+
+En el servidor, el endpoint valida `period` contra la lista blanca `PERIODS`, con la misma forma que la de signos, y construye la ruta de la API con él. Se puede probar sin el frontend:
+
+```sh
+curl "http://localhost:5174/api/horoscope?sign=leo&period=weekly"
+curl "http://localhost:5174/api/horoscope?sign=leo&period=yearly"   # 400 invalid period
+```
+
+El cliente `fetchHoroscope(sign, period)` devuelve ahora `{ text, date }` en lugar del texto solo, porque el ejercicio 6 necesita la fecha. `PERIODS` en `horoscopeClient.js` asocia cada valor de la API con su etiqueta, y el componente construye los botones del `ToggleButtonGroup` recorriendo ese objeto.
+
+Un detalle de `ToggleButtonGroup` con `exclusive`: pulsar el botón que ya está activo entrega `null`. El `onChange` lo ignora, para que siempre haya un período elegido.
+
+La fecha que devuelve la API cambia de forma según el período: un día, el lunes de la semana, o solo año y mes. `formatApiDate` reconoce las dos formas, y `SUBHEADER` arma el subtítulo de la tarjeta.
+
+## 6. Caché de traducciones y ubicación sin conexión
+
+Archivo nuevo: `src/api/horoscopeCache.js`, con la estructura de `weatherCache.js`. Guarda una entrada por signo y período, bajo claves como `WeatherApp/Horoscope/leo/daily`, con la fecha, el texto original, la traducción y la hora de guardado.
+
+El efecto de `Horoscope` sigue este orden:
+
+1. Pide el horóscopo a la API, que es gratuita.
+2. Si falla, busca la última traducción guardada y la muestra con un aviso (`CACHE_HIT` con `stale: true`). Si no hay nada guardado, queda en error.
+3. Si llega, compara fecha y texto con lo guardado. Si coinciden, reutiliza la traducción sin llamar a Cloud Translation (`CACHE_HIT` con `stale: false`).
+4. Si no coinciden, traduce y guarda el resultado.
+
+Comparar también el texto, y no solo la fecha, cubre el caso de que el proveedor corrija un horóscopo durante el día. Con esto, un usuario que entra diez veces al día a la misma pantalla paga una sola traducción por período. Puedes comprobarlo en el panel *Network*: en la segunda visita aparece la petición a `/api/horoscope` y ninguna a `/api/translate`.
+
+El efecto depende además del estado de la conexión, igual que `useWeather`, de modo que al volver la red la pantalla se actualiza sola.
+
+En `UserProfile`, `useConnectionStatus` deshabilita *Usar mi ubicación* y *Verificar dirección* mientras no haya red, con una línea que explica por qué. Sin esa explicación, un botón deshabilitado deja al usuario adivinando.
+
+## 7. Navegación para teléfonos
+
+En `src/App.jsx`. La lista `SECTIONS` describe las cuatro pantallas una sola vez, y de ella se construyen los botones de la barra superior y los de la `BottomNavigation`, de modo que no pueden quedar distintas.
+
+```es6
+const theme = useTheme();
+const compact = useMediaQuery(theme.breakpoints.down('sm'));
+```
+
+Por debajo de 600 píxeles la barra superior conserva solo el título, y la navegación baja a una `BottomNavigation` fija, dentro de un `Paper` con `position: 'fixed'`. Cada `BottomNavigationAction` es un `Link` de React Router (`component={Link}`), y la pestaña activa se marca pasando `location.pathname` como `value` de la `BottomNavigation`.
+
+El `Container` recibe un `padding-bottom` cuando la barra inferior está visible. Sin él, la barra tapa lo último de cada pantalla, como los botones del perfil.
+
+Se aprovechó de corregir la fila de botones del perfil, que en 360 píxeles se salía de la tarjeta: con `useFlexGap` y `flexWrap: 'wrap'`, el tercer botón pasa a una segunda línea.
+
+## 8. La key bajo observación
+
+No tiene código. Lo que deberías haber observado:
+
+* La key no aparece en *Network*, en *Sources* ni en `dist/assets`. Aparece solo en la terminal del backend, como `key=***`, gracias a `maskUrl`. Si la encontraras en el bundle, significaría que alguien la importó en el frontend, típicamente con una variable `VITE_...`: Vite incrusta en el bundle toda variable de entorno con ese prefijo, precisamente para que el frontend pueda leerla, y por eso nunca deben llevarlo los secretos.
+* Al quitar Cloud Translation de las APIs permitidas, Google responde 403 con un mensaje que menciona que la key no está autorizada para ese servicio. El backend devuelve ese mismo estado y el cuerpo de Google; `translateToEs` lanza un error porque `res.ok` es falso; y `Horoscope` cae en `TRANSLATE_ERROR`, que muestra el texto en inglés. El usuario ve un aviso y un horóscopo legible, y el desarrollador tiene en la terminal el mensaje que explica la causa.
+* La alerta de presupuesto no corta el servicio al llegar al monto: envía un correo. Sirve para enterarse a tiempo de que una key se filtró o de que un efecto de React está llamando a una API en un ciclo sin fin, que es la forma más común de gastar créditos sin darse cuenta.
