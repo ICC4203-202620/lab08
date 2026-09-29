@@ -23,7 +23,9 @@ En [Google Cloud Console](https://console.cloud.google.com/) ingresa con tus cre
 * Geocoding API
 * Cloud Translation API
 
-En la sección *Credentials* podrás crear una API key. Una sola key sirve para ambos servicios; en sus opciones, en *API restrictions*, limítala a esas dos APIs.
+Habilitar una API en el proyecto no basta: la key también tiene que estar autorizada para usarla. En la sección *Credentials* crea una API key (una sola sirve para ambos servicios), ábrela y, en *API restrictions*, elige *Restrict key* y marca las dos: Geocoding API y Cloud Translation API. Guarda los cambios, que pueden tardar unos minutos en aplicarse.
+
+Revisa esa lista aunque no la hayas tocado. Una key creada desde la página de una API en particular puede quedar restringida solo a esa API, y el síntoma es engañoso: la traducción del horóscopo funciona y la geolocalización del perfil falla, con la misma key.
 
 Copia el archivo de ejemplo de variables de entorno y completa las dos variables con tu key:
 
@@ -269,7 +271,16 @@ El service worker del laboratorio 7 tiene dos cambios. Sus reglas dejan pasar si
 
 **Lo que ve el navegador.** Con el panel *Network* abierto, usa *Usar mi ubicación* y entra a *Horóscopo*. Verás peticiones a `localhost:5173/api/...` y a Open-Meteo, y ninguna a `googleapis.com`. Esas las hace el backend, y aparecen en la terminal con la key enmascarada.
 
-**Los errores de Google.** Si el perfil muestra "Error consultando el geocoder", mira la terminal: la línea `[rev]` dice qué respondió Google. `REQUEST_DENIED` con "API key expired" o "not authorized" apunta a la key o a sus restricciones, y "This API project is not authorized" apunta a una API sin habilitar. Si el mensaje habla de facturación, revisa que el proyecto esté asociado a la cuenta donde canjeaste el cupón.
+**Los errores de Google.** Si el perfil muestra "Error consultando el geocoder", mira la terminal: la línea `[rev]` dice qué respondió Google, y la respuesta completa, con el mensaje de Google, se ve también en el panel *Network* del navegador. Los casos más comunes:
+
+| mensaje de Google | causa | solución |
+| --- | --- | --- |
+| `This API key is not authorized to use this service or API` | la key tiene restricción de APIs y Geocoding API no está en su lista | en *Credentials*, abre la key y agrega Geocoding API en *API restrictions* |
+| `This API is not activated on your API project` o `This API project is not authorized to use this API` | la API no está habilitada en el proyecto | habilítala en *APIs & Services*, *Library* |
+| `The provided API key is expired` o `API key not valid` | la key no existe o fue revocada | crea otra y actualiza `.env` |
+| un mensaje sobre facturación (*billing*) | el proyecto no tiene cuenta de facturación | asócialo a la cuenta donde canjeaste el cupón |
+
+Después de editar `.env` hay que reiniciar `yarn dev`: Node lee el archivo una sola vez, al arrancar. Los cambios en la consola de Google, en cambio, no requieren reiniciar nada, aunque pueden tardar unos minutos en aplicarse.
 
 ## Experimenta con el código
 
