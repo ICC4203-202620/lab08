@@ -237,7 +237,8 @@ export default function UserProfile() {
               </Typography>
             )}
 
-            <Stack direction="row" spacing={2} sx={{ pt: 1 }}>
+            {/* useFlexGap y flexWrap: en un teléfono los tres botones pasan a una segunda línea en vez de desbordarse */}
+            <Stack direction="row" spacing={2} useFlexGap sx={{ pt: 1, flexWrap: 'wrap' }}>
               <Button type="submit" variant="contained" disabled={!formik.isValid}>
                 Guardar
               </Button>
