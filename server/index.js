@@ -60,6 +60,18 @@ async function fetchJsonWithTimeout(url, { timeoutMs = 10000, ...init } = {}) {
   }
 }
 
+// Google ordena los resultados por cercanía y no por utilidad: cerca de unas
+// coordenadas, el primero puede ser un paradero o un local comercial, y en
+// medio del mar solo hay un "plus code" (69GG2222+22), que no es una dirección.
+// Preferimos una dirección de calle; si no la hay, cualquier resultado que no
+// sea un plus code; y si solo quedan plus codes, no hay dirección que mostrar.
+const ADDRESS_TYPES = ['street_address', 'premise', 'subpremise', 'route'];
+
+function pickBestResult(results = []) {
+  const usable = results.filter((r) => !r.types?.includes('plus_code'));
+  return usable.find((r) => r.types?.some((t) => ADDRESS_TYPES.includes(t))) ?? usable[0] ?? null;
+}
+
 // Llama al Geocoding API de Google y reduce la respuesta a lo que usa el
 // frontend. `params` lleva `latlng` (reverse) o `address` (forward).
 async function geocode(tag, params, res) {
@@ -103,7 +115,9 @@ async function geocode(tag, params, res) {
       });
     }
 
-    const best = json.results[0];
+    const best = pickBestResult(json.results);
+    if (!best) return res.json({ status: 'ZERO_RESULTS', formatted: null });
+
     const loc = best.geometry?.location || {};
     return res.json({
       status: json.status,
