@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   Box, Paper, Stack, TextField, Button, Typography,
   Snackbar, Alert, InputAdornment, CircularProgress
@@ -8,11 +8,7 @@ import * as Yup from 'yup';
 import useLocalStorageState from 'use-local-storage-state';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import RoomIcon from '@mui/icons-material/Room';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { reverseGeocodeServer } from '../api/geocodeClient';
-import { es } from 'date-fns/locale';
 
 /* ---------- Validation ---------- */
 const schema = Yup.object({
@@ -170,7 +166,7 @@ export default function UserProfile() {
                 onBlur={formik.handleBlur}
                 error={err('firstName')}
                 helperText={help('firstName')}
-                inputProps={{ maxLength: 50 }}
+                slotProps={{ htmlInput: { maxLength: 50 } }}
               />
               <TextField
                 fullWidth
@@ -181,7 +177,7 @@ export default function UserProfile() {
                 onBlur={formik.handleBlur}
                 error={err('lastName')}
                 helperText={help('lastName')}
-                inputProps={{ maxLength: 50 }}
+                slotProps={{ htmlInput: { maxLength: 50 } }}
               />
             </Stack>
 
@@ -195,12 +191,12 @@ export default function UserProfile() {
               onBlur={formik.handleBlur}
               error={err('age')}
               helperText={help('age')}
-              // Sugerir teclado numérico en móviles manteniendo "text"
-              inputMode="numeric"
               placeholder="Ej: 18"
+              // Sugiere el teclado numérico en móviles, sin dejar de ser un campo de texto
+              slotProps={{ htmlInput: { inputMode: 'numeric' } }}
             />
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="stretch">
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 fullWidth
                 label="Dirección"
@@ -212,13 +208,15 @@ export default function UserProfile() {
                 helperText={help('address')}
                 multiline
                 minRows={2}
-                inputProps={{ maxLength: 120 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <RoomIcon />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  htmlInput: { maxLength: 120 },
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <RoomIcon />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
