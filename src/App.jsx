@@ -18,11 +18,29 @@ const TITLES = {
   '/horoscope': 'Horóscopo',
 };
 
+// Lo que sale de localStorage pudo escribirlo otra aplicación del mismo origen.
+// Todos los laboratorios corren en localhost:5173, y no todos guardan los
+// favoritos igual: algunas versiones guardan objetos { id, name, ... } en vez de
+// nombres. Se conservan los nombres válidos, sin duplicados, y el resto se
+// descarta; si algo no es un arreglo, se vuelve al valor por defecto.
+const DEFAULT_FAVORITES = ['Santiago de Chile'];
+
+function normalizeFavorites(value) {
+  if (!Array.isArray(value)) return DEFAULT_FAVORITES;
+  const names = value
+    .map((item) => (typeof item === 'string' ? item : item?.name))
+    .filter((name) => typeof name === 'string' && name.trim());
+  return [...new Set(names)];
+}
+
 function App() {
   // Favorites persisted
-  const [favorites, setFavorites] = useLocalStorageState('WeatherApp/Favorites', {
-    defaultValue: ['Santiago de Chile'],
+  const [storedFavorites, setFavorites] = useLocalStorageState('WeatherApp/Favorites', {
+    defaultValue: DEFAULT_FAVORITES,
   });
+  // Las operaciones de abajo escriben siempre a partir de la lista ya
+  // normalizada, de modo que la primera modificación deja limpio lo guardado.
+  const favorites = useMemo(() => normalizeFavorites(storedFavorites), [storedFavorites]);
 
   const isFavorite = (name) => favorites.includes(name);
 
