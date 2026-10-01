@@ -288,7 +288,7 @@ Después de editar `.env` hay que reiniciar `yarn dev`: Node lee el archivo una 
    ```jsx
    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
    ```
-   `AdapterDateFns` también se importa desde `@mui/x-date-pickers`, y `es` desde `date-fns/locale`. Como `DatePicker` entrega un objeto `Date` y no un evento, tendrás que llamar a `formik.setFieldValue` en su `onChange`. Para las reglas de edad mínima y fecha no futura, `Yup.string().test(...)` te permite escribir la validación que necesites.
+   `AdapterDateFns` se importa desde `@mui/x-date-pickers/AdapterDateFns`, y `es` desde `date-fns/locale`. Como `DatePicker` entrega un objeto `Date` y no un evento, tendrás que llamar a `formik.setFieldValue` en su `onChange`. Para las reglas de edad mínima y fecha no futura, `Yup.string().test(...)` te permite escribir la validación que necesites.
 
 2. **Horóscopo.** Implementa `Horoscope` siguiendo los comentarios numerados de `src/components/Horoscope.jsx`, con el cliente `src/api/horoscopeClient.js` y el cliente de traducción `src/api/translateClient.js`. Necesitas haber resuelto el ejercicio 1, porque el signo se calcula a partir de `birthDate`. Cuando termines, borra la línea `eslint-disable` del comienzo del archivo y verifica que `yarn lint` no reclame nada.
 
