@@ -284,7 +284,7 @@ Después de editar `.env` hay que reiniciar `yarn dev`: Node lee el archivo una 
 
 ## Experimenta con el código
 
-1. **Fecha de nacimiento.** Completa `UserProfile` reemplazando el campo de edad por uno de fecha de nacimiento. El usuario debe tener al menos 13 años, y de lo contrario se muestra un error. La edad (`age`) debe mantenerse sincronizada con la fecha y mostrarse junto a ella. Guarda la fecha como texto `YYYY-MM-DD` en la propiedad `birthDate` del perfil, porque es lo que espera `Horoscope`. El componente de MUI que debes usar es [`DatePicker`](https://mui.com/x/react-date-pickers/date-picker/), del paquete `@mui/x-date-pickers`, que ya está instalado. Para mostrar las fechas en formato `DD/MM/AAAA` y en español, envuelve `DatePicker` en un `LocalizationProvider` con estas propiedades:
+1. **Fecha de nacimiento.** Completa `UserProfile` reemplazando el campo de edad por uno de fecha de nacimiento. El usuario debe tener al menos 13 años, y de lo contrario se muestra un error. La edad (`age`) debe mantenerse sincronizada con la fecha y mostrarse junto a ella. Guarda la fecha como texto `YYYY-MM-DD` en la propiedad `birthDate` del perfil, porque es lo que espera `Horoscope`. El componente de MUI que debes usar es [`DatePicker`](https://mui.com/x/react-date-pickers/date-picker/), del paquete `@mui/x-date-pickers`, que ya está instalado. Para mostrar las fechas en formato `DD/MM/AAAA` y en español, envuelve `DatePicker` en un `LocalizationProvider` (tambien importado desde `@mui/x-date-pickers`) con estas propiedades:
    ```jsx
    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
    ```
